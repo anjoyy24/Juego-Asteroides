@@ -1,5 +1,6 @@
 const canvas = document.getElementById("juegoCanvas");
 const ctx = canvas.getContext("2d");
+
 let ship = {
     x: canvas.width / 2,
     y: canvas.height / 2,
@@ -10,6 +11,8 @@ let ship = {
 let keys = {};
 let velocidadRotacion = 0.05;
 let fuerza = 0.2;
+let bullets = [];
+let bulletSpeed = 6;
 
 let asteroides = [];
 class Asteroide {
@@ -89,6 +92,15 @@ function crearAsteroide() {
 
 window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
+    if (e.key === " ") {
+        bullets.push({
+            x: ship.x,
+            y: ship.y,
+            vx: Math.cos(ship.angle) * bulletSpeed,
+            vy: Math.sin(ship.angle) * bulletSpeed,
+            life: 60
+        });
+    }
 });
 
 window.addEventListener("keyup", (e) => {
@@ -108,12 +120,25 @@ function drawShip() {
     ctx.stroke();
     ctx.restore();
 }
+
+function drawBullets() {
+    ctx.fillStyle = "white";
+    bullets.forEach((b) => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     if (keys["ArrowLeft"]) {
+        ship.angle -= velocidadRotacion;
         ship.angle -= velocidadRotacion;
     }
     if (keys["ArrowRight"]) {
+        ship.angle += velocidadRotacion;
         ship.angle += velocidadRotacion;
     }
     if (keys["ArrowUp"]) {
@@ -128,6 +153,19 @@ function loop() {
     if (ship.x < 0) ship.x = canvas.width;
     if (ship.y > canvas.height) ship.y = 0;
     if (ship.y < 0) ship.y = canvas.height;
+    bullets.forEach((b, index) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        b.life--;
+        if (b.x > canvas.width) b.x = 0;
+        if (b.x < 0) b.x = canvas.width;
+        if (b.y > canvas.height) b.y = 0;
+        if (b.y < 0) b.y = canvas.height;
+        if (b.life <= 0) {
+            bullets.splice(index, 1);
+        }
+    });
+
 
     if (Math.random() < 0.005) {
         asteroides.push(crearAsteroide());
@@ -144,7 +182,8 @@ function loop() {
         }
     });
     drawShip();
+    drawBullets();
+
     requestAnimationFrame(loop);
 }
-
 loop();
