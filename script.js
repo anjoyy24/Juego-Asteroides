@@ -184,6 +184,39 @@ function loop() {
     drawShip();
     drawBullets();
 
+    for (let i = asteroides.length - 1; i >= 0; i--) {
+        let asteroide = asteroides[i];
+
+        //Bala vs Asteroide
+        for (let j = bullets.length - 1; j >= 0; j--) {
+            let bala = bullets[j];
+            let dx = asteroide.x - bala.x;
+            let dy = asteroide.y - bala.y;
+            let distancia = Math.sqrt(dx * dx + dy * dy);
+
+            if (distancia < asteroide.radio) {
+                asteroides.splice(i, 1); 
+                bullets.splice(j, 1);
+                break; 
+            }
+        }
+
+        //Nave vs Asteroide
+        if (asteroides[i]) { 
+            let dxNave = asteroide.x - ship.x;
+            let dyNave = asteroide.y - ship.y;
+            let distNave = Math.sqrt(dxNave * dxNave + dyNave * dyNave);
+
+            if (distNave < asteroide.radio + 10) {
+                console.log("¡Game Over!");
+                ship.x = canvas.width / 2;
+                ship.y = canvas.height / 2;
+                ship.vx = 0;
+                ship.vy = 0;
+                break;
+            }
+        }
+    }
     requestAnimationFrame(loop);
 }
 loop();
