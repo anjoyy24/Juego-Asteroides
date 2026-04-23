@@ -8,13 +8,17 @@ let ship = {
     vx: 0,
     vy: 0
 };
+
 let keys = {};
 let velocidadRotacion = 0.05;
 let fuerza = 0.2;
 let bullets = [];
 let bulletSpeed = 6;
+let tiempoEntreDisparos = 200; 
+let ultimoDisparo = 0;
 
 let asteroides = [];
+
 class Asteroide {
     constructor(x, y, dx, dy, radio) {
         this.x = x;
@@ -86,36 +90,46 @@ function crearAsteroide() {
     let velocidadBase = Math.random() * 2 + 1;
     let dx = Math.cos(anguloHaciaCentro + variacion) * velocidadBase;
     let dy = Math.sin(anguloHaciaCentro + variacion) * velocidadBase;
-    return new Asteroide(x, y, dx, dy, radio);
 
+    return new Asteroide(x, y, dx, dy, radio);
 }
 
 window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
+
     if (e.key === " ") {
-        bullets.push({
-            x: ship.x,
-            y: ship.y,
-            vx: Math.cos(ship.angle) * bulletSpeed,
-            vy: Math.sin(ship.angle) * bulletSpeed,
-            life: 60
-        });
+        let ahora = Date.now();
+
+        if (ahora - ultimoDisparo > tiempoEntreDisparos) {
+            bullets.push({
+                x: ship.x,
+                y: ship.y,
+                vx: Math.cos(ship.angle) * bulletSpeed,
+                vy: Math.sin(ship.angle) * bulletSpeed,
+                life: 60
+            });
+
+            ultimoDisparo = ahora;
+        }
     }
 });
 
 window.addEventListener("keyup", (e) => {
     keys[e.key] = false;
 });
+
 function drawShip() {
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
+
     ctx.beginPath();
     ctx.moveTo(20, 0);
     ctx.lineTo(-15, 12);
     ctx.lineTo(-10, 0);
     ctx.lineTo(-15, -12);
     ctx.closePath();
+
     ctx.strokeStyle = "white";
     ctx.stroke();
     ctx.restore();
@@ -130,9 +144,34 @@ function drawBullets() {
     });
 }
 
+function actualizarModelo() {
+    if (keys["ArrowLeft"]) {
+        ship.angle -= velocidadRotacion;
+    }
+    if (keys["ArrowRight"]) {
+        ship.angle += velocidadRotacion;
+    }
+    if (keys["ArrowUp"]) {
+        ship.vx += Math.cos(ship.angle) * fuerza;
+        ship.vy += Math.sin(ship.angle) * fuerza;
+    }
+
+    ship.x += ship.vx;
+    ship.y += ship.vy;
+
+    ship.vx *= 0.99;
+    ship.vy *= 0.99;
+}
+
+
+function renderVista() {
+    drawShip();
+    drawBullets();
+}
+
 function loop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    actualizarModelo();
     if (keys["ArrowLeft"]) {
         ship.angle -= velocidadRotacion;
         ship.angle -= velocidadRotacion;
@@ -145,27 +184,32 @@ function loop() {
         ship.vx += Math.cos(ship.angle) * fuerza;
         ship.vy += Math.sin(ship.angle) * fuerza;
     }
+
     ship.x += ship.vx;
     ship.y += ship.vy;
+
     ship.vx *= 0.99;
     ship.vy *= 0.99;
+
     if (ship.x > canvas.width) ship.x = 0;
     if (ship.x < 0) ship.x = canvas.width;
     if (ship.y > canvas.height) ship.y = 0;
     if (ship.y < 0) ship.y = canvas.height;
+
     bullets.forEach((b, index) => {
         b.x += b.vx;
         b.y += b.vy;
         b.life--;
+
         if (b.x > canvas.width) b.x = 0;
         if (b.x < 0) b.x = canvas.width;
         if (b.y > canvas.height) b.y = 0;
         if (b.y < 0) b.y = canvas.height;
+
         if (b.life <= 0) {
             bullets.splice(index, 1);
         }
     });
-
 
     if (Math.random() < 0.005) {
         asteroides.push(crearAsteroide());
@@ -174,6 +218,7 @@ function loop() {
     asteroides.forEach((asteroide, i) => {
         asteroide.mover();
         asteroide.dibujar();
+
         if (
             asteroide.x < -100 || asteroide.x > canvas.width + 100 ||
             asteroide.y < -100 || asteroide.y > canvas.height + 100
@@ -181,13 +226,14 @@ function loop() {
             asteroides.splice(i, 1);
         }
     });
+
     drawShip();
     drawBullets();
+    renderVista();
 
     for (let i = asteroides.length - 1; i >= 0; i--) {
         let asteroide = asteroides[i];
 
-        //Bala vs Asteroide
         for (let j = bullets.length - 1; j >= 0; j--) {
             let bala = bullets[j];
             let dx = asteroide.x - bala.x;
@@ -201,7 +247,6 @@ function loop() {
             }
         }
 
-        //Nave vs Asteroide
         if (asteroides[i]) { 
             let dxNave = asteroide.x - ship.x;
             let dyNave = asteroide.y - ship.y;
@@ -217,6 +262,8 @@ function loop() {
             }
         }
     }
+
     requestAnimationFrame(loop);
 }
+
 loop();
